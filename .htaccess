@@ -1,0 +1,38 @@
+# mongo-php — Apache hardening
+#
+# This file is loaded automatically by Apache when the directory is served.
+# Nginx users: configure the equivalent rules in your `server { ... }` block
+# (see the README's "Production hardening" section).
+
+# --- Default index ----------------------------------------------------------
+DirectoryIndex index.php
+
+# --- Disable directory listings --------------------------------------------
+Options -Indexes
+
+# --- Deny access to non-entry-point folders --------------------------------
+# Only login.php, logout.php, index.php, action.php should ever be reachable
+# from the web. Block direct access to library code, dotfiles, docs, etc.
+<DirectoryMatch "/(lib|views|docs|\.github|\.git)(/|$)">
+    Require all denied
+</DirectoryMatch>
+
+<FilesMatch "(^\.|\.md$|\.yml$|\.yaml$|\.lock$|composer\.json$|LICENSE$|README|CHANGELOG|CONTRIBUTING|SECURITY)">
+    Require all denied
+</FilesMatch>
+
+# --- Security response headers ---------------------------------------------
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "DENY"
+    Header set Referrer-Policy "same-origin"
+    # Enable HSTS only if you are 100% sure the site is HTTPS-only.
+    # Header set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+</IfModule>
+
+# --- Force HTTPS (uncomment when you have a TLS cert) ----------------------
+# <IfModule mod_rewrite.c>
+#     RewriteEngine On
+#     RewriteCond %{HTTPS} !=on
+#     RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [R=301,L]
+# </IfModule>

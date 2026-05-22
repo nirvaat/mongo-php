@@ -1,0 +1,39 @@
+# PHP / Composer (not currently used, but ignore in case anyone adds them)
+/vendor/
+composer.lock
+composer.phar
+.php-cs-fixer.cache
+.phpunit.result.cache
+phpunit.xml
+
+# Local config / secrets
+config.local.php
+.env
+.env.*
+!.env.example
+
+# Editor / IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS noise
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs / runtime
+*.log
+/tmp/
+/cache/
+sessions/
+
+# Claude Code workspace settings (local)
+.claude/
+
+# Backup / scratch
+*.bak
+*.orig
+*.rej
