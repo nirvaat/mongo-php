@@ -16,6 +16,7 @@ render_header(['title' => $db, 'mongo' => $mongo, 'db' => $db, 'page' => 'databa
     <div class="card-actions">
       <a class="btn" href="#create-coll">+ Create collection</a>
       <a class="btn" href="export.php?db=<?=h(urlencode($db))?>">Export to SQL (MySQL)</a>
+      <a class="btn" href="<?=h(url(['page'=>'import','db'=>$db]))?>">Import MySQL dump</a>
       <?php if (!is_system_db($db)): ?>
         <form class="inline confirm-form" method="post" action="action.php">
           <input type="hidden" name="_csrf" value="<?=h(csrf_token())?>">
