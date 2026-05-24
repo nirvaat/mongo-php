@@ -148,6 +148,17 @@ class Mongo {
         return $cursor->toArray();
     }
 
+    /**
+     * Streaming cursor. Use for large reads where loading everything into an
+     * array would blow memory (exports, batch processing).
+     */
+    public function cursor(string $db, string $coll, array $filter = [], array $options = []): \MongoDB\Driver\Cursor {
+        $query = new Query($filter ?: (object)[], $options);
+        $cursor = $this->manager->executeQuery("{$db}.{$coll}", $query);
+        $cursor->setTypeMap(['root' => 'array', 'document' => 'array', 'array' => 'array']);
+        return $cursor;
+    }
+
     public function findOne(string $db, string $coll, array $filter, array $options = []) {
         $options['limit'] = 1;
         $r = $this->find($db, $coll, $filter, $options);
