@@ -8,6 +8,7 @@ A full walkthrough of every screen and feature. If you just want to install the 
 - [Logging in](#logging-in)
 - [The Server view (home)](#the-server-view-home)
 - [The Database view](#the-database-view)
+- [MongoDB migration (export / restore)](#mongodb-migration-export--restore)
 - [SQL import / export](#sql-import--export)
 - [The Collection tabs](#the-collection-tabs)
   - [Browse](#browse)
@@ -94,6 +95,7 @@ Click a database name in the table or the left sidebar. You see:
 - The list of collections with per-collection counts and sizes.
 - Per-collection action buttons: **Browse**, **Structure**, **Operations**, **Truncate**, **Drop**.
 - A **Create collection** form (with capped-collection options).
+- An **Export (MongoDB archive)** button and a **Restore MongoDB archive** button — see [MongoDB migration](#mongodb-migration-export--restore).
 - An **Export to SQL (MySQL)** button and an **Import MySQL dump** button — see [SQL import / export](#sql-import--export).
 - A red **Drop database** button (typed-name confirmation).
 
@@ -107,6 +109,34 @@ Name:           events
 Size (bytes):   10485760     # 10 MB
 Max documents:  100000
 ```
+
+## MongoDB migration (export / restore)
+
+For moving a database **between MongoDB servers** — a `mongodump`/`mongorestore`-free alternative that runs entirely in PHP. The Database view has two buttons for it.
+
+### Export (MongoDB archive)
+
+**Export (MongoDB archive)** streams the selected database to your browser as a `.mongo.json` download (named `<db>-<timestamp>.mongo.json`). The file is a portable archive:
+
+- It's **line-delimited Extended JSON v2** (NDJSON): a `meta` header line, then for each collection a `collection` line carrying its creation options and index specs, followed by one `doc` line per document.
+- **All BSON types round-trip losslessly** — `ObjectId`, `UTCDateTime`, `Decimal128`, `Binary`, `Regex`, `Timestamp`, etc. are preserved exactly, unlike the lossy MySQL export.
+- Export walks a server-side cursor and writes incrementally, so exporting a large database doesn't load it all into memory.
+
+System collections (`system.*`) and views are skipped; only real collections are exported.
+
+### Restore MongoDB archive
+
+**Restore MongoDB archive** opens an upload page where you select a `.mongo.json` archive produced by Export on another server (or the same one). Restoring into an **empty** database is recommended (you'll see a warning otherwise, since restore appends and may collide on `_id`).
+
+What restore does:
+
+- Recreates each collection with its original options, then **inserts documents keeping their original `_id`** (in batches, so a large archive doesn't exhaust memory).
+- Recreates every non-`_id` index from the archived index specs.
+- On `_id` collisions (e.g. restoring into a non-empty DB) the affected batch is reported as a warning rather than aborting the whole restore.
+
+After restore you get a per-collection report: documents restored, indexes created, the source database name, and any warnings. Lines with no preceding collection or an unknown type are counted under "skipped".
+
+> **Typical migration:** on the source server click **Export (MongoDB archive)**; on the target server, create (or select) an empty database and click **Restore MongoDB archive**, then upload the file. The upload is read from PHP's temp directory — no writable project folder is needed, and max size is bounded by your PHP `upload_max_filesize` / `post_max_size`.
 
 ## SQL import / export
 

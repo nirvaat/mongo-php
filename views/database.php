@@ -15,6 +15,8 @@ render_header(['title' => $db, 'mongo' => $mongo, 'db' => $db, 'page' => 'databa
     <h2>Database: <code><?=h($db)?></code></h2>
     <div class="card-actions">
       <a class="btn" href="#create-coll">+ Create collection</a>
+      <a class="btn" href="export.php?db=<?=h(urlencode($db))?>&amp;format=mongo">Export (MongoDB archive)</a>
+      <a class="btn" href="<?=h(url(['page'=>'restore','db'=>$db]))?>">Restore MongoDB archive</a>
       <a class="btn" href="export.php?db=<?=h(urlencode($db))?>">Export to SQL (MySQL)</a>
       <a class="btn" href="<?=h(url(['page'=>'import','db'=>$db]))?>">Import MySQL dump</a>
       <?php if (!is_system_db($db)): ?>

@@ -182,6 +182,32 @@ try {
             $return = url(['page' => 'import', 'db' => $db]);
             break;
         }
+        case 'import_mongo': {
+            if (!$db) throw new InvalidArgumentException('Missing db.');
+            if (preg_match('#[/\\\\. "$*<>:|?\x00]#', $db)) throw new InvalidArgumentException('Invalid database name.');
+            $f = $_FILES['archive'] ?? null;
+            if (!$f || ($f['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+                $codes = [
+                    UPLOAD_ERR_INI_SIZE => 'File exceeds the server upload_max_filesize.',
+                    UPLOAD_ERR_FORM_SIZE => 'File exceeds the form MAX_FILE_SIZE.',
+                    UPLOAD_ERR_PARTIAL => 'File was only partially uploaded.',
+                    UPLOAD_ERR_NO_FILE => 'No file was uploaded.',
+                ];
+                throw new InvalidArgumentException($codes[$f['error'] ?? UPLOAD_ERR_NO_FILE] ?? 'Upload failed.');
+            }
+            if (!is_uploaded_file($f['tmp_name'])) throw new RuntimeException('Invalid upload.');
+            require __DIR__ . '/lib/MongoExport.php';
+            require __DIR__ . '/lib/MongoImport.php';
+            @set_time_limit(0);
+            $importer = new MongoArchiveImporter($mongo, $db);
+            $report = $importer->importFile($f['tmp_name']);
+            $report['filename'] = (string)($f['name'] ?? 'archive.mongo.json');
+            $_SESSION['restore_report'] = $report;
+            $msg = "Restored {$report['totalRows']} document(s) into {$report['totalCollections']} collection(s), {$report['totalIndexes']} index(es).";
+            flash_set($report['totalCollections'] > 0 ? 'success' : 'error', $msg);
+            $return = url(['page' => 'restore', 'db' => $db]);
+            break;
+        }
         case 'run_command': {
             // Handled inline by the query page (no redirect), but POST goes here.
             if (!$db) throw new InvalidArgumentException('Missing db.');

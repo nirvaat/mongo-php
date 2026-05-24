@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Export / Restore MongoDB archive (server-to-server migration):** export any database to a portable `.mongo.json` archive and restore it into another MongoDB. (`export.php?format=mongo`, `lib/MongoExport.php`; `views/restore.php`, `lib/MongoImport.php`, `import_mongo` action)
+  - The archive is line-delimited Extended JSON v2: a `meta` header line, then per collection a `collection` line (creation options + index specs) followed by one `doc` line per document.
+  - All BSON types (`ObjectId`, `UTCDateTime`, `Decimal128`, `Binary`, `Regex`, `Timestamp`, …) round-trip losslessly; documents keep their original `_id`; non-`_id` indexes and collection options are recreated on restore.
+  - Both sides stream — export walks a server cursor and writes incrementally, restore reads line by line and inserts in batches — so a large database doesn't exhaust memory. Restoring into an empty database is recommended (it appends and may collide on `_id` otherwise).
+  - Returns a per-collection report (documents restored, indexes created, warnings, source DB). Designed as a `mongodump`/`mongorestore`-free way to move a database between servers.
 - **Export to SQL (MySQL):** stream any MongoDB database as a `mysqldump`-compatible `.sql` file. Each collection becomes a table, the union of observed BSON types per field drives the column types, nested objects/arrays land in `JSON` columns, and MongoDB indexes are emitted as `CREATE INDEX` statements. (`export.php`, `lib/Export.php`)
 - **Import MySQL dump → MongoDB:** upload a `mysqldump`-style `.sql` file from the Database view and reproduce the schema in MongoDB. (`views/import.php`, `lib/SqlImport.php`, `import_sql` action)
   - Each `CREATE TABLE` becomes a collection; each `INSERT` row becomes a document.

@@ -26,6 +26,7 @@ No Composer, no Node, no build step. Drop the folder into any PHP web root, poin
   - **Run command**: any database command (`buildInfo`, `serverStatus`, `collStats`, etc.)
 - **Indexes** — list, create (unique, sparse, compound, 2dsphere, text...), drop. `_id_` protected.
 - **Bulk operations** — updateMany, deleteMany, rename, truncate, drop — all with explicit confirmations.
+- **MongoDB migration** — **export** any database to a portable `.mongo.json` archive (line-delimited Extended JSON v2) and **restore** it into another MongoDB. All BSON types (`ObjectId`, `Date`, `Decimal128`, `Binary`, …) round-trip losslessly, documents keep their original `_id`, and collection options + indexes are recreated — for moving a database between servers without `mongodump`/`mongorestore`.
 - **SQL interop** — **export** any database to a MySQL `.sql` dump (tables, indexes, JSON columns for nested data), and **import** a `mysqldump` `.sql` file into MongoDB: each table becomes a collection, rows become documents, MySQL types map to BSON, single-column `PRIMARY KEY`s fold into `_id`, and `UNIQUE`/`KEY`/`FOREIGN KEY` columns are indexed.
 - **Stats** — collection stats and full `serverStatus` output.
 - **Security** — session-only credentials, CSRF tokens on every state-changing POST, escaped output, `nosniff` / `X-Frame-Options: DENY` / CSP headers, destructive ops require typing the exact name.
@@ -148,12 +149,14 @@ For local development none of this matters, but if it's on a server reachable fr
 mongo-php/
 ├── index.php          # Router (GET pages)
 ├── action.php         # POST handler (CSRF-protected)
-├── export.php         # Streams a MongoDB database as a MySQL .sql dump
+├── export.php         # Streams a database as a .mongo.json archive or MySQL .sql dump
 ├── login.php
 ├── logout.php
 ├── lib/
 │   ├── bootstrap.php  # session, security headers, CSRF
 │   ├── Mongo.php      # MongoDB wrapper (uses ext-mongodb directly)
+│   ├── MongoExport.php # MongoDB → .mongo.json archive (Extended JSON v2) generator
+│   ├── MongoImport.php # .mongo.json archive → MongoDB restorer
 │   ├── Export.php     # MongoDB → MySQL .sql dump generator
 │   ├── SqlImport.php  # MySQL .sql dump → MongoDB importer (parser + type mapping)
 │   ├── helpers.php    # html escape, BSON ↔ Extended JSON v2, cell rendering
@@ -168,6 +171,7 @@ mongo-php/
 │   ├── edit.php
 │   ├── indexes.php
 │   ├── import.php
+│   ├── restore.php
 │   ├── collstats.php
 │   ├── operations.php
 │   └── status.php

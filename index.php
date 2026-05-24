@@ -15,7 +15,7 @@ $page = preg_replace('/[^a-z_]/', '', (string)($_GET['page'] ?? 'home'));
 $db   = isset($_GET['db'])   ? (string)$_GET['db']   : null;
 $coll = isset($_GET['coll']) ? (string)$_GET['coll'] : null;
 
-$validPages = ['home','database','browse','structure','query','insert','edit','indexes','collstats','operations','status','import'];
+$validPages = ['home','database','browse','structure','query','insert','edit','indexes','collstats','operations','status','import','restore'];
 if (!in_array($page, $validPages, true)) $page = 'home';
 
 $viewFile = __DIR__ . '/views/' . $page . '.php';
