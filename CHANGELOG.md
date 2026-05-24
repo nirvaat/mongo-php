@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Export to SQL (MySQL):** stream any MongoDB database as a `mysqldump`-compatible `.sql` file. Each collection becomes a table, the union of observed BSON types per field drives the column types, nested objects/arrays land in `JSON` columns, and MongoDB indexes are emitted as `CREATE INDEX` statements. (`export.php`, `lib/Export.php`)
+- **Import MySQL dump → MongoDB:** upload a `mysqldump`-style `.sql` file from the Database view and reproduce the schema in MongoDB. (`views/import.php`, `lib/SqlImport.php`, `import_sql` action)
+  - Each `CREATE TABLE` becomes a collection; each `INSERT` row becomes a document.
+  - Column types map to BSON: `INT`→int, `DECIMAL`→Decimal128, `FLOAT`/`DOUBLE`→double, `DATE`/`DATETIME`/`TIMESTAMP`→UTCDateTime (UTC), `JSON`→nested object/array, `BLOB`/`BINARY`→Binary, `TINYINT(1)`→bool; bigint values outside PHP's 64-bit range are preserved as strings.
+  - A single-column `PRIMARY KEY` is folded into `_id`; composite/missing PKs get a generated ObjectId plus a unique index.
+  - `UNIQUE` / `KEY` / `INDEX` definitions are recreated as MongoDB indexes. MongoDB has no joins, so `FOREIGN KEY`s are not enforced — each foreign-key column is indexed instead so application-side `$lookup`s stay fast.
+  - Returns a per-collection report (rows imported, `_id` source, indexes, FK indexes, warnings, and skipped statement types). Uploads are processed from PHP's temp dir — no writable project folder required.
+
 ## [0.1.0] - 2026-05-22
 
 ### Added

@@ -8,6 +8,7 @@ A full walkthrough of every screen and feature. If you just want to install the 
 - [Logging in](#logging-in)
 - [The Server view (home)](#the-server-view-home)
 - [The Database view](#the-database-view)
+- [SQL import / export](#sql-import--export)
 - [The Collection tabs](#the-collection-tabs)
   - [Browse](#browse)
   - [Structure](#structure)
@@ -93,6 +94,7 @@ Click a database name in the table or the left sidebar. You see:
 - The list of collections with per-collection counts and sizes.
 - Per-collection action buttons: **Browse**, **Structure**, **Operations**, **Truncate**, **Drop**.
 - A **Create collection** form (with capped-collection options).
+- An **Export to SQL (MySQL)** button and an **Import MySQL dump** button — see [SQL import / export](#sql-import--export).
 - A red **Drop database** button (typed-name confirmation).
 
 ### Capped collections
@@ -105,6 +107,48 @@ Name:           events
 Size (bytes):   10485760     # 10 MB
 Max documents:  100000
 ```
+
+## SQL import / export
+
+The Database view has two buttons for moving data between MongoDB and MySQL. Both are zero-dependency and run entirely in PHP.
+
+### Export to SQL (MySQL)
+
+**Export to SQL (MySQL)** streams the selected database as a `mysqldump`-compatible `.sql` file straight to your browser as a download. For each collection it:
+
+- walks the documents to discover the union of fields and their BSON types, then emits a `CREATE TABLE` whose column types are the closest MySQL fit (nested objects/arrays become `JSON` columns);
+- emits the data as batched `INSERT` statements;
+- recreates MongoDB indexes as `CREATE INDEX` statements (dotted sub-field index keys are skipped — they have no column equivalent).
+
+MongoDB has no relational joins or foreign keys, so no `FOREIGN KEY` clauses are produced; soft references like `customer_id` are left as plain columns.
+
+### Import MySQL dump
+
+**Import MySQL dump** opens an upload page where you select a `mysqldump`-style `.sql` file. Importing into an **empty** database is recommended (you'll see a warning otherwise, since importing appends and may collide on `_id`).
+
+What the importer does:
+
+- **Each table → a collection**, each `INSERT` row → a document.
+- **Type mapping** to BSON:
+
+  | MySQL | MongoDB / BSON |
+  |---|---|
+  | `INT`, `BIGINT`, `SMALLINT`, `YEAR`, `BIT` | int (bigint beyond 64-bit kept as string) |
+  | `DECIMAL` / `NUMERIC` | Decimal128 |
+  | `FLOAT`, `DOUBLE`, `REAL` | double |
+  | `TINYINT(1)`, `BOOL` | bool |
+  | `DATE`, `DATETIME`, `TIMESTAMP` | UTCDateTime (interpreted as UTC; `0000-00-00` → null) |
+  | `JSON` | nested object / array |
+  | `BLOB`, `BINARY`, `VARBINARY` | Binary |
+  | everything else (`VARCHAR`, `TEXT`, `ENUM`, …) | string |
+
+- **Primary keys:** a single-column `PRIMARY KEY` is folded into `_id` (so a row with `id = 42` becomes `{ "_id": 42, … }`, and foreign-key values line up with the referenced documents' `_id`). Composite or missing primary keys get a generated `ObjectId` plus a unique index on the original key columns.
+- **Indexes:** `UNIQUE KEY` / `KEY` / `INDEX` definitions are recreated as MongoDB indexes.
+- **Foreign keys / "joins":** MongoDB doesn't enforce joins, so `FOREIGN KEY`s are **not** recreated as constraints. Instead each foreign-key column is indexed, so application-side `$lookup` joins stay fast (the "keep references + index them" approach).
+
+After import you get a report: per collection it shows rows imported, where `_id` came from, how many indexes and foreign-key indexes were created, and any warnings. Statements with no MongoDB equivalent (triggers, procedures, views, `ALTER`, `LOCK`, …) are skipped and counted.
+
+> **Note:** the upload is read from PHP's temp directory — the app needs no writable folder. Maximum dump size is bounded by your PHP `upload_max_filesize` and `post_max_size`.
 
 ## The Collection tabs
 

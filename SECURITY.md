@@ -10,7 +10,7 @@ mongo-php is a small project; only the **`main` branch** receives security fixes
 
 Instead, email a private report to:
 
-> security@example.com  *(replace with your real address before publishing)*
+> raj@nirvaat.com  
 
 Or, on GitHub, use the **[Security → Report a vulnerability](https://github.com/nirvaat/mongo-php/security/advisories/new)** flow (private advisory).
 
